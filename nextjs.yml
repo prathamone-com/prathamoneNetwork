@@ -1,0 +1,143 @@
+# .github/workflows/nextjs.yml
+# =============================================================================
+# PRATHAMONE — Automatic GitHub Pages Deploy
+# Trigger : push to main branch
+# Does    : pnpm install → turbo build (apps/web) → deploy /out to gh-pages
+#
+# REQUIRED SECRETS (set at GitHub → Settings → Secrets → Actions):
+#   NEXT_PUBLIC_SUPABASE_URL      — your Supabase project URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY — your Supabase anon key
+#
+# All other values are derived automatically from the repo context.
+# =============================================================================
+
+name: Deploy PrathamOne to GitHub Pages
+
+on:
+  push:
+    branches: [main]          # Deploy on every push to main
+  workflow_dispatch:           # Also allow manual trigger from Actions tab
+
+# Only one deploy runs at a time; any in-progress deploy is cancelled
+# when a newer push arrives — prevents race conditions on gh-pages branch.
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: write              # Needed to push to gh-pages branch
+  pages: write                 # Needed to configure GitHub Pages
+  id-token: write              # Needed for OIDC-based Pages deployment
+
+jobs:
+  build-and-deploy:
+    name: Build (Turbo) + Deploy (gh-pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15        # Fail loudly if something hangs
+
+    steps:
+      # ── 1. Checkout full monorepo ──────────────────────────────────────────
+      # fetch-depth: 0 gives Turbo access to git history for change detection
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. Set up pnpm BEFORE Node (setup-node uses pnpm cache) ───────────
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8            # Matches pnpm >= 8 requirement
+
+      # ── 3. Set up Node.js with pnpm cache ─────────────────────────────────
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'    # LTS — meets Next.js 14 >= 18.17 requirement
+          cache: 'pnpm'         # Caches ~/.pnpm-store between runs
+
+      # ── 4. Install dependencies (frozen lockfile) ─────────────────────────
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ── 5. Turbo remote cache (optional — speeds up repeated builds) ──────
+      # Uncomment and add TURBO_TOKEN + TURBO_TEAM secrets if you have
+      # a Vercel Remote Cache or self-hosted Turbo cache server.
+      # - name: Set up Turbo remote cache
+      #   run: echo "TURBO_TOKEN=${{ secrets.TURBO_TOKEN }}" >> $GITHUB_ENV
+
+      # ── 6. Build apps/web (and its package dependencies) ──────────────────
+      - name: Build with Turborepo
+        run: pnpm turbo build --filter="apps/web..."
+        env:
+          # Supabase keys — stored as GitHub Secrets
+          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Site URL — used by Next.js for canonical links, sitemap, etc.
+          NEXT_PUBLIC_SITE_URL: "https://prathamone.com"
+          # Turbo — disables interactive TTY output in CI
+          CI: "true"
+          TURBO_TELEMETRY_DISABLED: "1"
+
+      # ── 7. Verify /out was generated ──────────────────────────────────────
+      - name: Verify build output
+        run: |
+          if [ ! -d "apps/web/out" ]; then
+            echo "ERROR: apps/web/out directory not found after build."
+            echo "Check that next.config.mjs has  output: 'export'"
+            exit 1
+          fi
+          if [ ! -f "apps/web/out/index.html" ]; then
+            echo "ERROR: apps/web/out/index.html not found."
+            exit 1
+          fi
+          echo "Build output verified:"
+          ls -la apps/web/out/
+          echo "Total files: $(find apps/web/out -type f | wc -l)"
+          echo "Total size:  $(du -sh apps/web/out | cut -f1)"
+
+      # ── 8. Post-process /out ───────────────────────────────────────────────
+      - name: Post-process /out for GitHub Pages
+        run: |
+          cd apps/web/out
+
+          # .nojekyll — CRITICAL: without this, Jekyll ignores _next/
+          touch .nojekyll
+          echo ".nojekyll created"
+
+          # CNAME — keeps custom domain on every deploy
+          echo "prathamone.com" > CNAME
+          echo "CNAME written"
+
+          # Patch 404.html for SPA client-side routing
+          if [ -f "404.html" ]; then
+            if ! grep -q "gh_pages_redirect" "404.html"; then
+              sed -i 's|</body>|<script>sessionStorage.setItem("gh_pages_redirect",location.href);location.replace(location.origin+"/");</script></body>|' "404.html"
+              echo "404.html patched with SPA redirect"
+            fi
+          else
+            cat > 404.html << 'EOF'
+          <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>404</title>
+          <script>sessionStorage.setItem("gh_pages_redirect",location.href);location.replace(location.origin+"/");</script>
+          </head><body></body></html>
+          EOF
+            echo "404.html created"
+          fi
+
+          # Patch index.html to restore SPA route after 404 redirect
+          if [ -f "index.html" ] && ! grep -q "gh_pages_redirect" "index.html"; then
+            sed -i 's|</head>|<script>(function(){var r=sessionStorage.getItem("gh_pages_redirect");if(r){sessionStorage.removeItem("gh_pages_redirect");history.replaceState(null,null,r);}})();</script></head>|' "index.html"
+            echo "index.html patched with route-restore script"
+          fi
+
+      # ── 9. Deploy to gh-pages branch ──────────────────────────────────────
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir:  ./apps/web/out       # deploy /out contents
+          publish_branch: gh-pages           # orphan branch strategy
+          force_orphan: true                 # each deploy is a clean history
+          commit_message: |
+            deploy: ${{ github.event.head_commit.message }} [${{ github.sha }}]
+          # user_name and user_email default to github-actions[bot] — fine for CI

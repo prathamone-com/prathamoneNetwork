@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PrathamOne | AI Classroom for Bharat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Mono:wght@300;400;500&family=Noto+Sans+Devanagari:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8cc82;
+    --deep: #0a0a0f;
+    --surface: #0f0f1a;
+    --surface2: #141428;
+    --border: rgba(201,168,76,0.18);
+    --text: #e8e4d8;
+    --muted: rgba(232,228,216,0.45);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--deep);
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999; opacity: 0.35;
+  }
+
+  /* RADIAL GLOW */
+  .bg-glow {
+    position: fixed;
+    top: -20%; left: 50%; transform: translateX(-50%);
+    width: 900px; height: 600px;
+    background: radial-gradient(ellipse, rgba(201,168,76,0.07) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* HEADER */
+  header {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.8rem 3.5rem;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+  }
+
+  .logo-wrap {
+    display: flex; align-items: center; gap: 1rem;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .logo-wrap img {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    filter: drop-shadow(0 0 8px rgba(201,168,76,0.4));
+  }
+
+  .logo-text {
+    font-size: 1.5rem; font-weight: 700; letter-spacing: 0.05em;
+    background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  .tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem; letter-spacing: 0.2em;
+    color: var(--muted); text-transform: uppercase;
+    animation: fadeDown 0.8s 0.15s ease both;
+  }
+
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem; letter-spacing: 0.15em;
+    color: var(--gold);
+    border: 1px solid var(--border);
+    padding: 0.35rem 0.9rem; border-radius: 999px;
+    text-transform: uppercase;
+    animation: fadeDown 0.8s 0.3s ease both;
+  }
+
+  /* HERO */
+  .hero {
+    position: relative; z-index: 5;
+    text-align: center;
+    padding: 6rem 2rem 4rem;
+    animation: fadeUp 1s 0.2s ease both;
+  }
+
+  .est {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.3em;
+    color: var(--gold); text-transform: uppercase;
+    margin-bottom: 1.4rem;
+    display: inline-flex; align-items: center; gap: 0.8rem;
+  }
+  .est::before, .est::after {
+    content: ''; width: 40px; height: 1px; background: var(--gold); opacity: 0.5;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.8rem, 6vw, 5.5rem);
+    font-weight: 300; line-height: 1.1;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, #a07828 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    font-weight: 700;
+  }
+
+  .hero-sub {
+    font-size: 1.2rem; font-weight: 300;
+    color: var(--muted); margin: 1.4rem auto 0;
+    max-width: 520px; line-height: 1.6;
+  }
+
+  /* DIVIDER */
+  .divider {
+    display: flex; align-items: center; justify-content: center;
+    gap: 1.2rem; margin: 3rem auto;
+    max-width: 400px;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-icon { color: var(--gold); font-size: 1rem; opacity: 0.7; }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .card:hover {
+    border-color: rgba(201,168,76,0.4);
+    transform: translateY(-2px);
+  }
+  .card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(201,168,76,0.03) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    position: relative; z-index: 5;
+    max-width: 860px; margin: 0 auto;
+    padding: 0 2rem 5rem;
+  }
+
+  /* SECTION LABELS */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.25em;
+    color: var(--gold); text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* SELECT BUTTONS */
+  .select-group {
+    display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.4rem;
+  }
+
+  .sel-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.08em;
+    padding: 0.5rem 1.1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .sel-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .sel-btn.active {
+    background: rgba(201,168,76,0.12);
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  /* GRADE GRID */
+  .grade-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 0.5rem; margin-top: 0.4rem;
+  }
+
+  .grade-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.6rem 0;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .grade-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .grade-btn.active {
+    background: rgba(201,168,76,0.12);
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  /* LANG */
+  .lang-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.6rem; margin-top: 0.4rem;
+  }
+
+  .lang-btn {
+    font-size: 0.9rem;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem;
+  }
+  .lang-btn .lang-native {
+    font-family: 'Noto Sans Devanagari', 'Cormorant Garamond', serif;
+    font-size: 1rem; color: var(--text);
+  }
+  .lang-btn .lang-en {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem; letter-spacing: 0.1em; color: var(--muted);
+    text-transform: uppercase;
+  }
+  .lang-btn:hover { border-color: var(--gold); }
+  .lang-btn.active {
+    background: rgba(201,168,76,0.1);
+    border-color: var(--gold);
+  }
+  .lang-btn.active .lang-native { color: var(--gold-light); }
+
+  /* CTA */
+  .cta-wrap {
+    margin-top: 2.5rem;
+    display: flex; justify-content: center;
+  }
+
+  .cta-btn {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem; font-weight: 600; letter-spacing: 0.1em;
+    padding: 1rem 3rem;
+    border-radius: 12px;
+    border: 1px solid var(--gold);
+    background: linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05));
+    color: var(--gold-light);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .cta-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(201,168,76,0.2), transparent);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(201,168,76,0.2); }
+  .cta-btn:hover::after { opacity: 1; }
+
+  /* STATUS BADGES */
+  .status-row {
+    display: flex; justify-content: center; gap: 1.5rem;
+    flex-wrap: wrap; margin-top: 3rem;
+    animation: fadeUp 1s 0.6s ease both;
+  }
+
+  .status-item {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem; letter-spacing: 0.12em;
+    color: var(--muted); text-transform: uppercase;
+  }
+
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  .dot.green { background: #4caf82; box-shadow: 0 0 6px #4caf82; }
+  .dot.gold { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+  .dot.blue { background: #5b8dee; box-shadow: 0 0 6px #5b8dee; }
+
+  /* FOOTER */
+  footer {
+    position: relative; z-index: 5;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    padding: 2rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem; letter-spacing: 0.15em;
+    color: var(--muted); text-transform: uppercase;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUp   { from { opacity: 0; transform: translateY(18px);  } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse    { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .fade-up { animation: fadeUp 0.9s ease both; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+
+  /* MODAL */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .modal-backdrop.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.5rem;
+    max-width: 420px; width: 90%;
+    text-align: center;
+    transform: scale(0.95); transition: transform 0.3s;
+  }
+  .modal-backdrop.open .modal { transform: scale(1); }
+
+  .modal h2 {
+    font-size: 1.8rem; font-weight: 300;
+    color: var(--gold-light); margin-bottom: 0.6rem;
+  }
+  .modal p {
+    font-size: 1rem; color: var(--muted); margin-bottom: 1.8rem; line-height: 1.6;
+  }
+  .modal-close {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem; letter-spacing: 0.12em;
+    padding: 0.6rem 1.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    cursor: pointer; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { border-color: var(--gold); color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h2>Entering Workspace</h2>
+    <p>Your sovereign AI classroom is being prepared. This demo runs on GitHub Pages — connect your backend to enable full AI features.</p>
+    <button class="modal-close" onclick="closeModal()">Close</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-wrap">
+    <img src="https://prathamone.com/logo-luxury-3d.png" alt="PrathamOne" onerror="this.style.display='none'"/>
+    <div>
+      <div class="logo-text">PrathamOne</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;color:var(--muted);text-transform:uppercase;margin-top:1px;">Sovereign AI Collective</div>
+    </div>
+  </div>
+  <div class="tagline">Established 2026 • Bharat Edition 1.0</div>
+  <div class="badge">NCERT Verified</div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="est">Bharat Edition 1.0</div>
+  <h1>The Intelligent <span>AI Classroom</span><br/>Designed for Bharat</h1>
+  <p class="hero-sub">Elite curricula. Sovereign technology. Neural engines built for the brightest minds of Bharat.</p>
+</section>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- BOARD -->
+  <div class="card fade-up delay-1" style="margin-bottom:1.2rem;">
+    <div class="section-label">Step 01 — Curriculum Board</div>
+    <div class="select-group" id="board-group">
+      <button class="sel-btn active" onclick="selectBoard(this,'CBSE')">CBSE</button>
+      <button class="sel-btn" onclick="selectBoard(this,'ICSE')">ICSE</button>
+      <button class="sel-btn" onclick="selectBoard(this,'State Board')">State Board</button>
+      <button class="sel-btn" onclick="selectBoard(this,'IB / Cambridge')">IB / Cambridge</button>
+    </div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- GRADE -->
+    <div class="card fade-up delay-2">
+      <div class="section-label">Step 02 — Grade</div>
+      <div class="grade-grid" id="grade-group">
+        <button class="sel-btn" onclick="selectGrade(this,'1–5')">1–5</button>
+        <button class="sel-btn" onclick="selectGrade(this,'6')">VI</button>
+        <button class="sel-btn active" onclick="selectGrade(this,'7')">VII</button>
+        <button class="sel-btn" onclick="selectGrade(this,'8')">VIII</button>
+        <button class="sel-btn" onclick="selectGrade(this,'9')">IX</button>
+        <button class="sel-btn" onclick="selectGrade(this,'10')">X</button>
+        <button class="sel-btn" onclick="selectGrade(this,'11')">XI</button>
+        <button class="sel-btn" onclick="selectGrade(this,'12')">XII</button>
+      </div>
+    </div>
+
+    <!-- LANGUAGE -->
+    <div class="card fade-up delay-3">
+      <div class="section-label">Step 03 — Language</div>
+      <div class="lang-grid" id="lang-group">
+        <button class="lang-btn active" onclick="selectLang(this)">
+          <span class="lang-native">English</span>
+          <span class="lang-en">English</span>
+        </button>
+        <button class="lang-btn" onclick="selectLang(this)">
+          <span class="lang-native">हिन्दी</span>
+          <span class="lang-en">Hindi</span>
+        </button>
+        <button class="lang-btn" onclick="selectLang(this)">
+          <span class="lang-native">मराठी</span>
+          <span class="lang-en">Marathi</span>
+        </button>
+        <button class="lang-btn" onclick="selectLang(this)">
+          <span class="lang-native">ગુજરાતી</span>
+          <span class="lang-en">Gujarati</span>
+        </button>
+        <button class="lang-btn" onclick="selectLang(this)">
+          <span class="lang-native">संस्कृतम्</span>
+          <span class="lang-en">Sanskrit</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-wrap fade-up" style="animation-delay:0.4s">
+    <button class="cta-btn" onclick="openModal()">Enter Sovereign Workspace →</button>
+  </div>
+
+</main>
+
+<!-- STATUS -->
+<div class="status-row">
+  <div class="status-item"><div class="dot green"></div> NCERT Verified</div>
+  <div class="status-item"><div class="dot gold"></div> Neural Engines Active</div>
+  <div class="status-item"><div class="dot blue"></div> Digital Sovereignty</div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  © MMXXVI PrathamOne AI Collective — Reserved for the Elite
+  &nbsp;·&nbsp;
+  <a href="https://prathamone.com" target="_blank" style="color:var(--gold);text-decoration:none;">prathamone.com</a>
+</footer>
+
+<script>
+  function selectBoard(btn, val) {
+    document.querySelectorAll('#board-group .sel-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  function selectGrade(btn, val) {
+    document.querySelectorAll('#grade-group .sel-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  function selectLang(btn) {
+    document.querySelectorAll('#lang-group .lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>

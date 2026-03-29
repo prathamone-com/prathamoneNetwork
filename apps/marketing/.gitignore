@@ -1,0 +1,15 @@
+# ── Next.js build output ──────────────────────────────────────
+.next/
+out/
+
+# ── Environment secrets — NEVER commit ───────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+
+# ── TypeScript incremental cache ──────────────────────────────
+*.tsbuildinfo
+next-env.d.ts
